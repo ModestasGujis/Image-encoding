@@ -1,15 +1,23 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 from PIL import Image
-import sys
-import binascii
-
 import sys, getopt
+
 USAGE = 'USAGE:\n./image_encoding.py -d <image_file> # for decoding\n./image_encoding.py -e <text_file> <image_file> # for encoding'
 ENCODING_BIT_COUNT = 2 # number of the least significant bits that will be used to encode the message
 BIT_COUNT = 8 # number of bits in a pixel
+ENCODING = 'utf-8'
 
-def string2bits(s=''):
-	return ''.join([bin(ord(x))[2:].zfill(8) for x in s])
+def string2bits(s):
+	bits = list(s.encode(ENCODING))
+	ret = ''.join([bin(x)[2:].zfill(BIT_COUNT) for x in bits])
+
+	return ret
+
+def bits2string(binary_string):
+	bits = [int(binary_string[i - BIT_COUNT:i], 2) for i in range(BIT_COUNT, len(binary_string), BIT_COUNT)]
+	
+	bits = bits[:bits.index((1 << BIT_COUNT) - 1)]
+	return bytes(bits).decode(ENCODING)
 
 def encode8bit(pixel, binary_string): # encode 8bit integer pixels
 	# remove the least significant encoding bits
@@ -34,10 +42,7 @@ def decode(image_file):
 			b = ENCODING_BIT_COUNT
 			binary_string += (bin(px[i,j])[2:])[-b:].zfill(b)
 
-	text = ''
-	for i in range(0, len(binary_string), BIT_COUNT):
-		text += chr(int(binary_string[i:i + BIT_COUNT], 2))
-
+	text = bits2string(binary_string)
 	print(text)
 
 def encode(text_file, image_file):
@@ -45,6 +50,7 @@ def encode(text_file, image_file):
 	all_text = file.read()
 	file.close()
 	binary_string = string2bits(all_text)
+	binary_string += '1' * BIT_COUNT # add one invalid byte for termination
 
 	im = Image.open(image_file)
 	(w, h) = im.size
@@ -73,6 +79,7 @@ def encode(text_file, image_file):
 			px[i,j] = encode8bit(px[i,j], binary_string)
 			binary_string = binary_string[ENCODING_BIT_COUNT:]
 
+	print('encoded_' + image_file, 'has been generated')
 	im.save('encoded_' + image_file)
 
 def main(argv):
@@ -82,6 +89,10 @@ def main(argv):
 		print (USAGE)
 		sys.exit(2)
 
+	if len(args) == 0:
+		print(USAGE)
+		sys.exit()
+
 	for opt, arg in opts:
 		if opt in ("-h", "--help"):
 			print (USAGE)
@@ -90,11 +101,13 @@ def main(argv):
 			if len(args) < 1:
 				print (USAGE)
 				sys.exit(2)
+
 			decode(args[0])
 		elif opt == "-e":
 			if len(args) < 2:
 				print (USAGE)
 				sys.exit(2)
+
 			encode(args[0], args[1])
 
 
