@@ -79,8 +79,11 @@ def encode(text_file, image_file):
 			px[i,j] = encode8bit(px[i,j], binary_string)
 			binary_string = binary_string[ENCODING_BIT_COUNT:]
 
-	print('encoded_' + image_file, 'has been generated')
-	im.save('encoded_' + image_file)
+	new_file_name = 'encoded_' + image_file.rsplit(".", 1)[0] + '.png'
+
+	# save as png to preserve pixels and avoid compression
+	print(new_file_name, 'has been generated')
+	im.save(new_file_name)
 
 def main(argv):
 	try:
